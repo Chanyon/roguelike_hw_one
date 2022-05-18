@@ -8,14 +8,16 @@ mod rect;
 mod player;
 mod visibility_system;
 mod monster_ai_system;
-
+mod map_indexing_system;
 use visibility_system::VisibilitySystem;
-use component::{Position,Player,Renderable,Viewshed,Monster,Name};
+use component::{Position,Player,Renderable,Viewshed,Monster,Name,BlocksTile};
 use map::*;
 use rect::Rect;
 use player::player_input;
 use monster_ai_system::MonsterAI;
+use map_indexing_system::MapIndexingSystem;
 
+// player.rs
 fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
     let mut players = ecs.write_storage::<Player>();
@@ -29,7 +31,7 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
         ppos.x = pos.x;
         ppos.y = pos.y;
         // 如果遇到墙不能再移动
-        if map.tiles[destination_idx] != TileType::Wall {
+        if !map.blocked[destination_idx] {
             pos.x = min(79, max(0, pos.x + delta_x));
             pos.y = min(49, max(0, pos.y + delta_y));
             viewshed.dirty = true;
@@ -75,8 +77,12 @@ impl State {
     fn run_systems(&mut self) {
         let mut vis = VisibilitySystem{};
         vis.run_now(&self.ecs);
+
         let mut mob = MonsterAI {};
-        mob.run_now(&mut self.ecs);
+        mob.run_now(&self.ecs);
+
+        let mut map_index = MapIndexingSystem {};
+        map_index.run_now(&self.ecs);
         self.ecs.maintain();
     }
 }
@@ -97,6 +103,7 @@ fn main() -> rltk::BError {
     gs.ecs.register::<Viewshed>();
     gs.ecs.register::<Monster>();
     gs.ecs.register::<Name>();
+    gs.ecs.register::<BlocksTile>();
     // 创建实体,它们只不过是一个标识号，告诉 ECS 存在一个实体
     gs.ecs
     .create_entity()
@@ -133,11 +140,12 @@ fn main() -> rltk::BError {
         .with(Viewshed{ visible_tiles: Vec::new(), range:8,dirty: true})
         .with(Monster{})
         .with(Name { name: format!("{} #{}",name,i)})
+        .with(BlocksTile{})
         .build();
     }
 
     gs.ecs.insert(map);
     gs.ecs.insert(Point::new(player_x,player_y));
-
     rltk::main_loop(context, gs)
 }
+

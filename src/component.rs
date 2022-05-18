@@ -18,7 +18,7 @@ pub struct Renderable {
 pub struct Player {}
 
 // 视域
-#[derive(Component)]
+#[derive(Component,Debug)]
 pub struct Viewshed {
     pub visible_tiles: Vec<rltk::Point>,
     pub range: i32,
@@ -34,3 +34,6 @@ pub struct Monster {}
 pub struct Name{
     pub name: String,
 }
+
+#[derive(Component,Debug)]
+pub struct BlocksTile {}
